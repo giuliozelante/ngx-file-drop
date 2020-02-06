@@ -8,7 +8,7 @@ import { FileSystemEntry, FileSystemFileEntry, FileSystemDirectoryEntry } from '
 export class NgxFileDropEntry {
     constructor(
         public relativePath: string,
-        public fileEntry: FileSystemEntry
+        public fileEntry: File
     ) {
     }
 }

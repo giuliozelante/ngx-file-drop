@@ -20,10 +20,9 @@ import { NgxFileDropContentTemplateDirective } from './ngx-templates.directive';
 @Component({
   selector: 'ngx-file-drop',
   templateUrl: './ngx-file-drop.component.html',
-  styleUrls: ['./ngx-file-drop.component.scss'],
+  styleUrls: ['./ngx-file-drop.component.scss']
 })
 export class NgxFileDropComponent implements OnDestroy {
-
   @Input()
   public accept: string = '*';
 
@@ -42,10 +41,12 @@ export class NgxFileDropComponent implements OnDestroy {
   @Input()
   public contentClassName: string = 'ngx-file-drop__content';
 
-  public get disabled(): boolean { return this._disabled; }
+  public get disabled(): boolean {
+    return this._disabled;
+  }
   @Input()
   public set disabled(value: boolean) {
-    this._disabled = (value != null && `${value}` !== 'false');
+    this._disabled = value != null && `${value}` !== 'false';
   }
 
   @Input()
@@ -64,7 +65,8 @@ export class NgxFileDropComponent implements OnDestroy {
   public onFileLeave: EventEmitter<any> = new EventEmitter();
 
   // custom templates
-  @ContentChild(NgxFileDropContentTemplateDirective, { read: TemplateRef, static: false }) contentTemplate: TemplateRef<any>;
+  @ContentChild(NgxFileDropContentTemplateDirective, { read: TemplateRef, static: false })
+  contentTemplate: TemplateRef<any>;
 
   @ViewChild('fileSelector', { static: true })
   public fileSelector: ElementRef;
@@ -85,10 +87,7 @@ export class NgxFileDropComponent implements OnDestroy {
 
   private _disabled: boolean = false;
 
-  constructor(
-    private zone: NgZone,
-    private renderer: Renderer2
-  ) {
+  constructor(private zone: NgZone, private renderer: Renderer2) {
     this.globalDragStartListener = this.renderer.listen('document', 'dragstart', (evt: Event) => {
       this.globalDraggingInProgress = true;
     });
@@ -182,17 +181,15 @@ export class NgxFileDropComponent implements OnDestroy {
             isFile: true,
             file: (callback: (filea: File) => void): void => {
               callback(item as File);
-            },
+            }
           };
-          const toUpload: NgxFileDropEntry = new NgxFileDropEntry(fakeFileEntry.name, fakeFileEntry);
+          const toUpload: NgxFileDropEntry = new NgxFileDropEntry(fakeFileEntry.name, item as File);
           this.addToQueue(toUpload);
         }
-
       } else {
         if (entry.isFile) {
-          const toUpload: NgxFileDropEntry = new NgxFileDropEntry(entry.name, entry);
+          const toUpload: NgxFileDropEntry = new NgxFileDropEntry(entry.name, item as File);
           this.addToQueue(toUpload);
-
         } else if (entry.isDirectory) {
           this.traverseFileTree(entry, entry.name);
         }
@@ -202,21 +199,24 @@ export class NgxFileDropComponent implements OnDestroy {
     if (this.dropEventTimerSubscription) {
       this.dropEventTimerSubscription.unsubscribe();
     }
-    this.dropEventTimerSubscription = timer(200, 200)
-      .subscribe(() => {
-        if (this.files.length > 0 && this.numOfActiveReadEntries === 0) {
-          const files = this.files;
-          this.files = [];
-          this.onFileDrop.emit(files);
-        }
-      });
+    this.dropEventTimerSubscription = timer(200, 200).subscribe(() => {
+      if (this.files.length > 0 && this.numOfActiveReadEntries === 0) {
+        const files = this.files;
+        this.files = [];
+        this.onFileDrop.emit(files);
+      }
+    });
   }
 
-  private traverseFileTree(item: FileSystemEntry, path: string): void {
+  private traverseFileTree(
+    item: FileSystemEntry,
+    path: string
+  ): void {
     if (item.isFile) {
-      const toUpload: NgxFileDropEntry = new NgxFileDropEntry(path, item);
-      this.files.push(toUpload);
-
+      (item as FileSystemFileEntry).file( x => {
+        const toUpload: NgxFileDropEntry = new NgxFileDropEntry(path, x);
+        this.files.push(toUpload);
+      })
     } else {
       path = path + '/';
       const dirReader = (item as FileSystemDirectoryEntry).createReader();
@@ -224,15 +224,16 @@ export class NgxFileDropComponent implements OnDestroy {
 
       const readEntries = () => {
         this.numOfActiveReadEntries++;
-        dirReader.readEntries((result) => {
+        dirReader.readEntries(result => {
           if (!result.length) {
             // add empty folders
             if (entries.length === 0) {
-              const toUpload: NgxFileDropEntry = new NgxFileDropEntry(path, item);
-              this.zone.run(() => {
-                this.addToQueue(toUpload);
-              });
-
+              (item as FileSystemFileEntry).file(x => {
+                const toUpload: NgxFileDropEntry = new NgxFileDropEntry(path, x);
+                this.zone.run(() => {
+                  this.addToQueue(toUpload);
+                });
+              })
             } else {
               for (let i = 0; i < entries.length; i++) {
                 this.zone.run(() => {
@@ -240,7 +241,6 @@ export class NgxFileDropComponent implements OnDestroy {
                 });
               }
             }
-
           } else {
             // continue with the reading
             entries = entries.concat(result);
@@ -308,7 +308,7 @@ export class NgxFileDropComponent implements OnDestroy {
   }
 
   private isDropzoneDisabled(): boolean {
-    return (this.globalDraggingInProgress || this.disabled);
+    return this.globalDraggingInProgress || this.disabled;
   }
 
   private addToQueue(item: NgxFileDropEntry): void {
